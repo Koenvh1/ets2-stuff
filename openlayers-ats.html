@@ -137,7 +137,7 @@ body {
 
 <label id="track_checkbox_label"><input type="checkbox" id="track_checkbox"> Track a random virtual position/rotation</label>
 
-<script src="cities-promods-rusmap.js"></script>
+<script src="cities-ats.js"></script>
 
 <!-- Polyfill for older browsers: https://github.com/mathiasbynens/String.fromCodePoint -->
 <script>
@@ -215,7 +215,7 @@ function calculatePixelCoordinate(x, y, pointsPerPixel, x0, y0) {
 }
 
 function game_coord_to_pixels(x, y) {
-	var r = calculatePixelCoordinate(x, y, 7.278, 13164, 16260);
+	var r = calculatePixelCoordinate(x, y, 2.31504606365, 30929, 1547);
 
 	// Inverting Y axis, because of OpenLayers coordinates.
 	r[1] = MAX_Y - r[1];
@@ -223,8 +223,8 @@ function game_coord_to_pixels(x, y) {
 }
 
 
-var MAX_X = 28314;
-var MAX_Y = 23560;
+var MAX_X = 10840 * 2;
+var MAX_Y = 7600 * 2;
 
 
 var projection = new ol.proj.Projection({
@@ -340,42 +340,9 @@ var popup_overlay = new ol.Overlay({
 
 // https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 var COUNTRY_NAME_TO_CODE = {
-	"andorra": "ad",
-	"austria": "at",
-	"belarus": "by",
-	"belgium": "be",
-	"bulgaria": "bg",
-	"czech": "cz",
-	"denmark": "dk",
-	"estonia": "ee",
-	"faroe": "fo",
-	"finland": "fi",
-	"france": "fr",
-	"germany": "de",
-	"hungary": "hu",
-	"iceland": "is",
-	"iom": "im",
-	"isle of man": "im",
-	"italy": "it",
-	"latvia": "lv",
-	"liecht": "li",
-	"liechtenstein": "li",
-	"lithuania": "lt",
-	"luxembourg": "lu",
-	"moldova": "md",
-	"netherlands": "nl",
-	"norway": "no",
-	"poland": "pl",
-	"romania": "ro",
-	"russia": "ru",
-	"slovakia": "sk",
-	"slovenia": "si",
-	"spain": "es",
-	"sweden": "se",
-	"switzerland": "ch",
-	"uk": "gb",
-	"united kingdom": "gb",
-	"ukraine": "ua"
+    "california": "ca",
+	"nevada": "nv",
+	"arizona": "az"
 };
 
 // http://codepen.io/denilsonsa/pen/BKWNgB
@@ -409,14 +376,14 @@ function getTextFeatures() {
 			//Creating a new image layer
 			image: new ol.style.Icon(({
 							//By default, the images are too large. Depends on the flag set.
-                            scale: scale / 15,
+                            scale: scale / 10,
                             //rotateWithView: true,
                             anchor: [0.5, 1],
                             anchorXUnits: 'fraction',
                             anchorYUnits: 'fraction',
 							//Get flag image
 							//images from: http://lipis.github.io/flag-icon-css/
-                            src: 'flags/' + this.get('cc') + '.svg'
+                            src: 'flags-usa/' + this.get('cc') + '.png'
                         })),
 			text: new ol.style.Text({
 				text: text,
@@ -480,7 +447,7 @@ var map = new ol.Map({
 			extent: [0, 0, MAX_X, MAX_Y],
 			source: new ol.source.XYZ({
 				projection: projection,
-				url: 'koenvh1-promods-rusmap/{z}/{y}/{x}.png',
+				url: 'ats/{z}/{x}/{y}.png',
 				tileSize: [256, 256],
 				// Using createXYZ() makes the vector layer (with the features) unaligned.
 				// It also tries loading non-existent tiles.
