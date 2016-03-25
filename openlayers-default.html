@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>OpenLayers demo for ets2-mobile-route-advisor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+<!-- Note: if this demo gets incorporated into ets2-mobile-route-advisor, I'd recommend including a copy of these files. That way, it will work even without Internet connection. -->
+<!--link rel="stylesheet" href="http://openlayers.org/en/v3.8.2/css/ol.css" type="text/css"-->
+<!--script src="http://openlayers.org/en/v3.8.2/build/ol.js" type="text/javascript"></script-->
+<!--script src="http://openlayers.org/en/v3.8.2/build/ol-debug.js" type="text/javascript"></script-->
+<link rel="stylesheet" href="ol-3.9.0.css" type="text/css">
+<script src="ol-3.9.0.js" type="text/javascript"></script>
+
+<style>
+body {
+	font-size: 9vmin;
+	background-color: rgba(21, 21, 21, 1);
+}
+
+#map {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+
+#track_checkbox_label {
+	position: absolute;
+	bottom: 0.5em;
+	left: 0.5em;
+	background: white;
+	color: black;
+	padding: 2px;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+/* Overriding some styles from OpenLayers built-in CSS. */
+#map .ol-control {
+	background: transparent;
+	padding: 0;
+	border-radius: 0;
+}
+#map .ol-control button {
+	color: #cecece;
+	background: #6c6c6c;
+	background: linear-gradient(to bottom, #3c3c3c 0%, #6c6c6c 45%, #3c3c3c 100%);
+	box-sizing: content-box;
+	overflow: hidden;
+	width: 1em;
+	height: 1em;
+	font-size: 1em;
+	line-height: 1.0;
+	text-shadow: #000 0 0 0.1em;
+	border-radius: 0.1em;
+	padding: 0.1em;
+	border: 0;
+	margin: 0;
+}
+#map .ol-control button:active {
+	color: #242424;
+	background: #ffcc2f;
+	background: linear-gradient(to bottom, #ab7d00 0%, #ffcc2f 45%, #ab7d00 100%);
+	text-shadow: none;
+}
+#map .ol-compass {
+	font-size: inherit;
+}
+#map .ol-zoom {
+	top: auto;
+	left: auto;
+	right: 0.5em;
+	bottom: 0.5em;
+	display: flex;
+	flex-direction: row-reverse;
+}
+#map .ol-zoom > button {
+	flex-grow: 0;
+	flex-shrink: 0;
+	margin-left: 0.2em;
+}
+
+/* http://openlayers.org/en/v3.9.0/examples/popup.html */
+.ol-popup {
+	position: absolute;
+	background-color: white;
+	-webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+	filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+	padding: 15px;
+	border-radius: 10px;
+	border: 1px solid #cccccc;
+	bottom: 12px;
+	left: -50px;
+	min-width: 280px;
+
+	font-size: 14px;
+}
+.ol-popup:after, .ol-popup:before {
+	top: 100%;
+	border: solid transparent;
+	content: " ";
+	height: 0;
+	width: 0;
+	position: absolute;
+	pointer-events: none;
+}
+.ol-popup:after {
+	border-top-color: white;
+	border-width: 10px;
+	left: 48px;
+	margin-left: -10px;
+}
+.ol-popup:before {
+	border-top-color: #cccccc;
+	border-width: 11px;
+	left: 48px;
+	margin-left: -11px;
+}
+.ol-popup-closer {
+	text-decoration: none;
+	position: absolute;
+	top: 2px;
+	right: 8px;
+}
+
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="popup" class="ol-popup">
+	<a href="javascript://close_popup()" id="popup-closer" class="ol-popup-closer">✖</a>
+	<div id="popup-content"></div>
+</div>
+
+<label id="track_checkbox_label"><input type="checkbox" id="track_checkbox"> Track a random virtual position/rotation</label>
+
+<script src="cities-promods-rusmap.js"></script>
+
+<!-- Polyfill for older browsers: https://github.com/mathiasbynens/String.fromCodePoint -->
+<script>
+/*! https://mths.be/fromcodepoint v0.2.1 by @mathias */
+if (!String.fromCodePoint) {
+	(function() {
+		var defineProperty = (function() {
+			// IE 8 only supports `Object.defineProperty` on DOM elements
+			try {
+				var object = {};
+				var $defineProperty = Object.defineProperty;
+				var result = $defineProperty(object, object, object) && $defineProperty;
+			} catch(error) {}
+			return result;
+		}());
+		var stringFromCharCode = String.fromCharCode;
+		var floor = Math.floor;
+		var fromCodePoint = function(_) {
+			var MAX_SIZE = 0x4000;
+			var codeUnits = [];
+			var highSurrogate;
+			var lowSurrogate;
+			var index = -1;
+			var length = arguments.length;
+			if (!length) {
+				return '';
+			}
+			var result = '';
+			while (++index < length) {
+				var codePoint = Number(arguments[index]);
+				if (
+					!isFinite(codePoint) || // `NaN`, `+Infinity`, or `-Infinity`
+					codePoint < 0 || // not a valid Unicode code point
+					codePoint > 0x10FFFF || // not a valid Unicode code point
+					floor(codePoint) != codePoint // not an integer
+				) {
+					throw RangeError('Invalid code point: ' + codePoint);
+				}
+				if (codePoint <= 0xFFFF) { // BMP code point
+					codeUnits.push(codePoint);
+				} else { // Astral code point; split in surrogate halves
+					// https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
+					codePoint -= 0x10000;
+					highSurrogate = (codePoint >> 10) + 0xD800;
+					lowSurrogate = (codePoint % 0x400) + 0xDC00;
+					codeUnits.push(highSurrogate, lowSurrogate);
+				}
+				if (index + 1 == length || codeUnits.length > MAX_SIZE) {
+					result += stringFromCharCode.apply(null, codeUnits);
+					codeUnits.length = 0;
+				}
+			}
+			return result;
+		};
+		if (defineProperty) {
+			defineProperty(String, 'fromCodePoint', {
+				'value': fromCodePoint,
+				'configurable': true,
+				'writable': true
+			});
+		} else {
+			String.fromCodePoint = fromCodePoint;
+		}
+	}());
+}
+</script>
+
+<script>
+// Based on http://forum.scssoft.com/viewtopic.php?f=41&t=186779
+function calculatePixelCoordinate(x, y, pointsPerPixel, x0, y0) {
+	return [
+		x / pointsPerPixel + x0,
+		y / pointsPerPixel + y0
+	];
+}
+
+function game_coord_to_pixels(x, y) {
+	var r = calculatePixelCoordinate(x, y, 7.278, 13164, 16260);
+
+	// Inverting Y axis, because of OpenLayers coordinates.
+	r[1] = MAX_Y - r[1];
+	return r;
+}
+
+
+var MAX_X = 28314;
+var MAX_Y = 23560;
+
+
+var projection = new ol.proj.Projection({
+	// Any name here. I chose "Funbit" because we are using funbit's image coordinates.
+	code: 'koenvh1',
+	units: 'pixels',
+	extent: [0, 0, MAX_X, MAX_Y],
+	worldExtent: [0, 0, MAX_X, MAX_Y]
+});
+ol.proj.addProjection(projection);
+
+ol.proj.addCoordinateTransforms('EPSG:4326', projection,
+	function(coord) {
+	  return [coord[0], -coord[1]];
+	},
+	function(coord) {
+	  return [coord[0], -coord[1]];
+	}
+);
+ol.proj.addCoordinateTransforms('EPSG:3857', projection,
+	function(coord) {
+	  return [coord[0], -coord[1]];
+	},
+	function(coord) {
+	  return [coord[0], -coord[1]];
+	}
+);
+
+// Notice: it is not possible to set the style in the ol.Feature constructor.
+// Read about it at https://github.com/openlayers/ol3/issues/2274
+
+var markers = [
+	/*
+	new ol.Feature({
+		geometry: new ol.geom.Point([0, 0]),
+		name: 'Origin',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.Point([256, 256]),
+		name: 'First Tile',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.Point([256, MAX_Y - 256]),
+		name: 'Other First Tile',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.Point([MAX_X, MAX_Y]),
+		name: 'Opposite corner',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.Point(game_coord_to_pixels(41744.53, 17305.5156)),
+		name: 'Debrecen',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.Point(game_coord_to_pixels(-49770.64, -48417.68)),
+		name: 'Glasgow',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.LineString([[10, 10], [256, 256], [512, 320], [512, 512]]),
+		name: 'Sample line',
+	}),
+	new ol.Feature({
+		geometry: new ol.geom.Polygon([
+			// Outer polygon:
+			[[210, 110], [556, 156], [712, 320], [712, 512]]
+			// Optionally followed by inner polygons that define holes in the outer one.
+		]),
+		name: 'Sample polygon',
+	}),
+	*/
+];
+
+var feature_source = new ol.source.Vector({
+	features: markers,
+	wrapX: false
+});
+
+var custom_tilegrid = new ol.tilegrid.TileGrid({
+	extent: [0, 0, MAX_X, MAX_Y],
+	minZoom: 0,
+	origin: [0, MAX_Y],
+	tileSize: [256, 256],
+	resolutions: (function(){
+		var r = [];
+		for (var z = 0; z <= 7; ++z) {
+			r[z] = Math.pow(2, 7 - z);
+		}
+		return r;
+	})()
+});
+
+
+// http://openlayers.org/en/v3.9.0/examples/popup.html
+var popup_container = document.getElementById('popup');
+var popup_content = document.getElementById('popup-content');
+var popup_closer = document.getElementById('popup-closer');
+function close_popup(ev) {
+	popup_overlay.setPosition(undefined);
+	if (ev) {
+		ev.stopPropagation();
+		ev.preventDefault();
+	}
+	return false;
+}
+var popup_overlay = new ol.Overlay({
+	element: popup_container,
+	autoPan: true,
+	autoPanAnimation: {
+		duration: 250
+	}
+});
+
+
+// https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+var COUNTRY_NAME_TO_CODE = {
+	"andorra": "ad",
+	"austria": "at",
+	"belarus": "by",
+	"belgium": "be",
+	"bulgaria": "bg",
+	"czech": "cz",
+	"denmark": "dk",
+	"estonia": "ee",
+	"faroe": "fo",
+	"finland": "fi",
+	"france": "fr",
+	"germany": "de",
+	"hungary": "hu",
+	"iceland": "is",
+	"iom": "im",
+	"isle of man": "im",
+	"italy": "it",
+	"latvia": "lv",
+	"liecht": "li",
+	"liechtenstein": "li",
+	"lithuania": "lt",
+	"luxembourg": "lu",
+	"moldova": "md",
+	"netherlands": "nl",
+	"norway": "no",
+	"poland": "pl",
+	"romania": "ro",
+	"russia": "ru",
+	"slovakia": "sk",
+	"slovenia": "si",
+	"spain": "es",
+	"sweden": "se",
+	"switzerland": "ch",
+	"uk": "gb",
+	"united kingdom": "gb",
+	"ukraine": "ua"
+};
+
+// http://codepen.io/denilsonsa/pen/BKWNgB
+function country_code_to_unicode(cc) {
+	cc = cc.toLowerCase();
+	var flagA = 0x1F1E6;
+	var letter_a = 0x61;
+	var a = cc.charCodeAt(0) - letter_a;
+	var b = cc.charCodeAt(1) - letter_a;
+	return String.fromCodePoint(flagA + a, flagA + b);
+}
+
+// Copied from:
+// https://github.com/mike-koch/ets2-mobile-route-advisor/blob/5bde032121cbabac3bfd98f156a1e376d9903fd8/js/map.js
+// https://github.com/mike-koch/ets2-mobile-route-advisor/compare/promods-support
+// See also:
+// https://github.com/mike-koch/ets2-mobile-route-advisor/issues/90
+function getTextFeatures() {
+	var fill = new ol.style.Fill();
+	fill.setColor('#fff');
+	var stroke = new ol.style.Stroke();
+	stroke.setColor('#000');
+	stroke.setWidth(2);
+
+	var createTextStyle = function(resolution) {
+		var scale = Math.min(1, Math.max(0, 1.0 / Math.log2(resolution + 1) - 0.125));
+		var text = this.get('realName'); //Removed country_code_to_unicode(this.get('cc')) + ' ' + 
+		// console.log(scale, resolution);
+		// console.log(this.get('realName'), this.get('country'));
+		return [new ol.style.Style({
+			//Creating a new image layer
+			image: new ol.style.Icon(({
+							//By default, the images are too large. Depends on the flag set.
+                            scale: scale / 15,
+                            //rotateWithView: true,
+                            anchor: [0.5, 1],
+                            anchorXUnits: 'fraction',
+                            anchorYUnits: 'fraction',
+							//Get flag image
+							//images from: http://lipis.github.io/flag-icon-css/
+                            src: 'flags/' + this.get('cc') + '.svg'
+                        })),
+			text: new ol.style.Text({
+				text: text,
+				font: '32px "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+				textAlign: 'center',
+				fill: fill,
+				stroke: stroke,
+				scale: scale,
+				//Move the text down, otherwise the flag and text will overlap. 
+				offsetY: 14 * scale
+			})
+		})];
+	};
+
+	var features = g_cities_json.map(function(city) {
+		var map_coords = game_coord_to_pixels(city.x, city.z);
+		// cc = Country Code
+		city.cc = COUNTRY_NAME_TO_CODE[city.country.toLowerCase()];
+		var feature = new ol.Feature(city);
+		feature.setGeometry(new ol.geom.Point(map_coords));
+		feature.setStyle(createTextStyle);
+		return feature;
+	});
+
+	return features;
+}
+function getTextLayer() {
+	var textSource = new ol.source.Vector({
+		features: getTextFeatures(),
+		wrapX: false
+	});
+	var vectorLayer = new ol.layer.Vector({
+		source: textSource
+	});
+
+	return vectorLayer;
+}
+
+
+// Finally, creating the map!
+var map = new ol.Map({
+	target: 'map',
+	controls: [
+		// new ol.control.ZoomSlider(),
+		// new ol.control.OverviewMap(),
+		// new ol.control.MousePosition(),  // DEBUG
+		new ol.control.Zoom(),
+		new ol.control.Rotate({
+			autoHide: false,
+			label: '\u2B06'
+		})
+	],
+	interactions: ol.interaction.defaults().extend([
+		// Rotating by using two fingers is implemented in PinchRotate(), which is enabled by default.
+		// With DragRotateAndZoom(), it is possible to use Shift+mouse-drag to rotate the map.
+		// Without it, Shift+mouse-drag creates a rectangle to zoom to an area.
+		new ol.interaction.DragRotateAndZoom()
+	]),
+	layers: [
+		new ol.layer.Tile({
+			extent: [0, 0, MAX_X, MAX_Y],
+			source: new ol.source.XYZ({
+				projection: projection,
+				url: 'koenvh1-promods-rusmap/{z}/{y}/{x}.png',
+				tileSize: [256, 256],
+				// Using createXYZ() makes the vector layer (with the features) unaligned.
+				// It also tries loading non-existent tiles.
+				//
+				// Using custom_tilegrid causes rescaling of all image tiles before drawing
+				// (i.e. no image will be rendered at 1:1 pixels), But fixes all other issues.
+				tileGrid: custom_tilegrid,
+				// tileGrid: ol.tilegrid.createXYZ({
+				// 	extent: [0, 0, MAX_X, MAX_Y],
+				// 	minZoom: 0,
+				// 	maxZoom: 7,
+				// 	tileSize: [256, 256]
+				// }),
+				wrapX: false,
+				maxZoom: 7
+			})
+		}),
+		getTextLayer(),
+		// Debug layer below.
+		// new ol.layer.Tile({
+		// 	extent: [0, 0, MAX_X, MAX_Y],
+		// 	source: new ol.source.TileDebug({
+		// 		projection: projection,
+		// 		tileGrid: custom_tilegrid,
+		// 		// tileGrid: ol.tilegrid.createXYZ({
+		// 		// 	extent: [0, 0, MAX_X, MAX_Y],
+		// 		// 	minZoom: 0,
+		// 		// 	maxZoom: 7,
+		// 		// 	tileSize: [256, 256]
+		// 		// }),
+		// 		wrapX: false
+		// 	})
+		// }),
+		new ol.layer.Vector({
+			source: feature_source
+			//style: ...
+		})
+	],
+	overlays: [
+		popup_overlay
+	],
+	view: new ol.View({
+		projection: projection,
+		extent: [0, 0, MAX_X, MAX_Y],
+		//center: ol.proj.transform([37.41, 8.82], 'EPSG:4326', 'EPSG:3857'),
+		center: [MAX_X/2, MAX_Y/2],
+		minZoom: 0,
+		maxZoom: 9,
+		zoom: 2
+	})
+});
+
+
+map.on('singleclick', function(ev) {
+  var coordinate = ev.coordinate;
+  console.log('OpenLayers coordinates:', coordinate, 'Pixels:', [coordinate[0], MAX_Y - coordinate[1]]);
+});
+
+// map.getView().on('change:center', function(ev) {
+//   console.log(ev);
+// });
+// map.getView().on('change:rotation', function(ev) {
+//   console.log(ev);
+// });
+
+
+// http://openlayers.org/en/v3.9.0/examples/icon.html
+map.on('singleclick', function(ev) {
+	var feature = map.forEachFeatureAtPixel(ev.pixel,
+		function(feature, layer) {
+			return feature;
+		}
+	);
+
+	if (feature) {
+		var name = feature.get('name');
+		if (name) {
+			popup_content.textContent = name;
+
+			// If the feature is a Point:
+			//popup_overlay.setPosition(feature.getGeometry().getCoordinates());
+			// General-case:
+			var extent = feature.getGeometry().getExtent();
+			var coords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+			popup_overlay.setPosition(coords);
+		}
+	}
+});
+
+
+
+
+// https://stackoverflow.com/q/32868671/
+var auto_tracking = false;
+document.getElementById('track_checkbox').checked = auto_tracking;
+var ignore_change_events = false;
+map.getView().on(['change:center', 'change:rotation'], function(ev) {
+	if (ignore_change_events) {
+		return;
+	}
+	auto_tracking = false;
+	document.getElementById('track_checkbox').checked = auto_tracking;
+});
+
+var trackingCheckboxControl = new ol.control.Control({
+	element: document.getElementById('track_checkbox_label')
+});
+map.addControl(trackingCheckboxControl);
+document.getElementById('track_checkbox').addEventListener('click', function(ev) {
+	auto_tracking = ev.target.checked;
+});
+
+
+// Virtual, fake, mock, dummy truck position and rotation.
+// Just some random numbers that get updated all the time.
+var truck_pos = [MAX_X/2, MAX_Y/2];
+var truck_rot = 0;
+var truck_delta_pos = [0, 0];
+var truck_delta_rot = 0;
+setInterval(function() {
+	if (!auto_tracking) {
+		return;
+	}
+
+	truck_delta_pos[0] += (Math.random() - 0.5) * 1;
+	truck_delta_pos[1] += (Math.random() - 0.5) * 1;
+	truck_delta_rot += (Math.random() - 0.5) * (Math.PI / 256);
+
+	truck_pos[0] += truck_delta_pos[0];
+	truck_pos[1] += truck_delta_pos[1];
+	truck_rot += truck_delta_rot;
+
+	ignore_change_events = true;
+	map.getView().setCenter(truck_pos);
+	map.getView().setRotation(truck_rot);
+	ignore_change_events = false;
+}, 40);
+
+</script>
+
+</body>
+</html>
