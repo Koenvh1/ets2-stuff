@@ -215,7 +215,7 @@ function calculatePixelCoordinate(x, y, pointsPerPixel, x0, y0) {
 }
 
 function game_coord_to_pixels(x, y) {
-	var r = calculatePixelCoordinate(x, y, 7.278, 13164, 16260);
+	var r = calculatePixelCoordinate(x, y, 7.278, 13164, 25400);
 
 	// Inverting Y axis, because of OpenLayers coordinates.
 	r[1] = MAX_Y - r[1];
@@ -309,8 +309,8 @@ var custom_tilegrid = new ol.tilegrid.TileGrid({
 	tileSize: [256, 256],
 	resolutions: (function(){
 		var r = [];
-		for (var z = 0; z <= 7; ++z) {
-			r[z] = Math.pow(2, 7 - z);
+		for (var z = 0; z <= 8; ++z) {
+			r[z] = Math.pow(2, 8 - z);
 		}
 		return r;
 	})()
@@ -483,7 +483,7 @@ var map = new ol.Map({
 				// 	tileSize: [256, 256]
 				// }),
 				wrapX: false,
-				maxZoom: 8
+				maxZoom: 7
 			})
 		}),
 		getTextLayer(),
