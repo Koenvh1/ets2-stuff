@@ -215,7 +215,7 @@ function calculatePixelCoordinate(x, y, pointsPerPixel, x0, y0) {
 }
 
 function game_coord_to_pixels(x, y) {
-	var r = calculatePixelCoordinate(x, y, 2.31504606365, 30929, 1547);
+	var r = calculatePixelCoordinate(x, y, 2.31504606365, 30943, 1749);
 
 	// Inverting Y axis, because of OpenLayers coordinates.
 	r[1] = MAX_Y - r[1];
@@ -223,8 +223,8 @@ function game_coord_to_pixels(x, y) {
 }
 
 
-var MAX_X = 10840 * 2;
-var MAX_Y = 7600 * 2;
+var MAX_X = 12360*2;
+var MAX_Y = 10640*2;
 
 
 var projection = new ol.proj.Projection({
